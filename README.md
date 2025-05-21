@@ -148,6 +148,112 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
   <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400" style="border-radius:20px;"/>
 </a>
 
+## Deployment with Vagrant
+
+If you prefer to test Dokploy in a controlled environment, you can use Vagrant to deploy it locally.
+
+### Prerequisites
+
+- Install [VirtualBox](https://www.oracle.com/hk/virtualization/virtualbox/)
+- Install [Vagrant](https://www.vagrantup.com/)
+
+### Quick Start
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/imjszhang/dokploy.git
+   cd dokploy
+   git checkout githubforker
+   ```
+
+2. Start the Vagrant virtual machine:
+   ```
+   vagrant up
+   ```
+
+3. Access the Dokploy management interface:
+   Open http://localhost:3000 in your browser
+
+### Deploying New Projects
+
+1. SSH into the Vagrant virtual machine:
+   ```
+   vagrant ssh
+   ```
+
+2. Use the Dokploy CLI:
+   ```
+   cd ~/dokploy
+   ./scripts/deploy.sh my-project https://github.com/username/project.git main
+   ```
+
+3. Or use the web interface to add a new project:
+   Visit http://localhost:3000 and create a new project using the UI
+
+### Custom Configuration
+
+- Modify `Vagrantfile` to adjust virtual machine resource settings
+- Modify `dokploy/docker-compose.yml` to adjust Dokploy service configurations
+- Modify `dokploy/config/traefik/traefik.yml` to adjust Traefik settings
+
+### Troubleshooting
+
+If you encounter issues, try the following steps:
+
+1. Restart the Vagrant virtual machine: `vagrant reload`
+2. Rebuild the Vagrant virtual machine: `vagrant destroy` then `vagrant up`
+3. Check Docker service status: `sudo systemctl status docker`
+4. Check Dokploy logs: `docker logs dokploy`
+
+### Docker Compose Rewrite Guide
+
+Follow the format below to rewrite standard GitHub project docker-compose.yaml files to meet Dokploy deployment requirements:
+
+1. **Use expose instead of ports**
+   ```yaml
+   # Don't use this
+   ports:
+     - "3000:3000"
+   
+   # Use this instead
+   expose:
+     - "3000"
+   ```
+
+2. **Environment variables and build args settings**
+   ```yaml
+   services:
+     app:
+       build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+           - VAR_NAME=${VAR_NAME:-default}
+       environment:
+         - VAR_NAME=${VAR_NAME:-default}
+   ```
+
+3. **Traefik label configuration**
+   ```yaml
+   labels:
+     - "traefik.enable=true"
+     - "traefik.http.routers.myapp.rule=Host(`myapp.${DOMAIN:-dokploy.localhost}`)"
+     - "traefik.http.routers.myapp.entrypoints=web"
+     - "traefik.http.services.myapp.loadbalancer.server.port=3000"
+     - "traefik.docker.network=dokploy-network"
+   ```
+
+4. **Network settings**
+   ```yaml
+   networks:
+     - dokploy-network
+
+   # Add at the end of the file
+   networks:
+     dokploy-network:
+       external: true
+   ```
+
 <!-- ## Supported OS
 
 - Ubuntu 24.04 LTS
